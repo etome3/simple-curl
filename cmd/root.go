@@ -4,6 +4,8 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+	"net"
 	"net/url"
 	"os"
 
@@ -32,9 +34,28 @@ to quickly create a Cobra application.`,
 		port := u.Port()
 		path := u.Path
 
-		println("Host:", host)
-		println("Port:", port)
-		println("Path:", path)
+		if port == "" {
+			port = "80"
+		}
+
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer conn.Close()
+
+		fmt.Fprintf(conn, "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path, host)
+
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(string(buf[:n]))
 	},
 }
 
