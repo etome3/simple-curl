@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli/v3"
 )
@@ -22,6 +23,12 @@ func Execute() {
 				Value:   "GET",
 				Usage:   "HTTP method to use (GET, POST, etc.)",
 			},
+
+			&cli.StringFlag{
+				Name:    "data",
+				Aliases: []string{"d"},
+				Usage:   "HTTP POST data",
+			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 			url := c.Args().First()
@@ -30,8 +37,19 @@ func Execute() {
 			}
 
 			method := c.String("method")
+			data := c.String("data")
 
-			req, err := http.NewRequestWithContext(ctx, method, url, nil)
+			if data != "" && !c.IsSet("method") {
+				method = "POST"
+			}
+
+			var bodyReader io.Reader
+
+			if data != "" {
+				bodyReader = strings.NewReader(data)
+			}
+
+			req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 			if err != nil {
 				return fmt.Errorf("failed to create request: %w", err)
 			}
