@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strings"
 
@@ -34,6 +35,12 @@ func Execute() {
 				Name:    "header",
 				Aliases: []string{"H"},
 				Usage:   "Pass custom header(s) to server",
+			},
+
+			&cli.BoolFlag{
+				Name:    "verbose",
+				Aliases: []string{"v"},
+				Usage:   "Make the operation more talkative",
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
@@ -73,12 +80,29 @@ func Execute() {
 				req.Header.Add(key, value)
 			}
 
+			if c.Bool("verbose") {
+				dump, err := httputil.DumpRequestOut(req, true)
+				if err != nil {
+					return fmt.Errorf("debug dump failed: %w", err)
+				}
+
+				fmt.Fprintf(os.Stderr, "> %s\n", string(dump))
+			}
+
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				return fmt.Errorf("request failed: %w", err)
 			}
-
 			defer resp.Body.Close()
+
+			if c.Bool("verbose") {
+				dump, err := httputil.DumpResponse(resp, false)
+				if err != nil {
+					return fmt.Errorf("debug dump failed: %w\n", err)
+				}
+
+				fmt.Fprintf(os.Stderr, "< %s\n", string(dump))
+			}
 
 			if resp.StatusCode >= 400 {
 				fmt.Fprintf(os.Stderr, "Warning: Server returned status %s\n", resp.Status)
