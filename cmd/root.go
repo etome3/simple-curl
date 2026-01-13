@@ -29,6 +29,12 @@ func Execute() {
 				Aliases: []string{"d"},
 				Usage:   "HTTP POST data",
 			},
+
+			&cli.StringSliceFlag{
+				Name:    "header",
+				Aliases: []string{"H"},
+				Usage:   "Pass custom header(s) to server",
+			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 			url := c.Args().First()
@@ -52,6 +58,19 @@ func Execute() {
 			req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 			if err != nil {
 				return fmt.Errorf("failed to create request: %w", err)
+			}
+
+			for _, h := range c.StringSlice("header") {
+				parts := strings.SplitN(h, ":", 2)
+
+				if len(parts) != 2 {
+					return fmt.Errorf("header '%s' has wrong format, expect 'Key: Value'", h)
+				}
+
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+
+				req.Header.Add(key, value)
 			}
 
 			resp, err := http.DefaultClient.Do(req)
