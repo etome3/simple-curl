@@ -58,7 +58,17 @@ func Execute() {
 
 			var bodyReader io.Reader
 
-			if data != "" {
+			if strings.HasPrefix(data, "@") {
+				filePath := strings.TrimPrefix(data, "@")
+
+				file, err := os.Open(filePath)
+				if err != nil {
+					return fmt.Errorf("failed to open file: %w\n", err)
+				}
+				defer file.Close()
+
+				bodyReader = file
+			} else if data != "" {
 				bodyReader = strings.NewReader(data)
 			}
 
